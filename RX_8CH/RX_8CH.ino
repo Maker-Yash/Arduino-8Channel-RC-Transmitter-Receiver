@@ -27,16 +27,16 @@
 #define PIN_RF_CE          9    // Chip Enable
 #define PIN_RF_CSN        10    // SPI Chip Select (CSN)
 
-// Standard Conflict-Free Pin Assignments (Preserves D0/D1 for Serial Diagnostics)
-// CH1..CH7 use digital pins D2..D8; CH8 uses A0 (Digital 14); Status LED uses A1.
-#define PIN_OUT_CH1        2    // D2 : CH1 (Aileron / Roll Servo)
-#define PIN_OUT_CH2        3    // D3 : CH2 (Elevator / Pitch Servo)
-#define PIN_OUT_CH3        4    // D4 : CH3 (Throttle / ESC Motor Controller)
-#define PIN_OUT_CH4        5    // D5 : CH4 (Rudder / Yaw Servo)
-#define PIN_OUT_CH5        6    // D6 : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
-#define PIN_OUT_CH6        7    // D7 : CH6 (AUX 2 / Potentiometer 2 / Flaps)
-#define PIN_OUT_CH7        8    // D8 : CH7 (AUX 3 / Switch 1 / Gear / Relay)
-#define PIN_OUT_CH8       A0    // A0 (D14) : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
+// Receiver Pin Assignments (CH1: D0/RX0, CH2..CH8: D2..D8, Status LED: A1)
+// CH1 uses D0/RX0; CH2..CH8 use D2..D8; Status LED uses A1.
+#define PIN_OUT_CH1        0    // RX0 : CH1 (Aileron / Roll Servo)
+#define PIN_OUT_CH2        2    // D2 : CH2 (Elevator / Pitch Servo)
+#define PIN_OUT_CH3        3    // D3 : CH3 (Throttle / ESC Motor Controller)
+#define PIN_OUT_CH4        4    // D4 : CH4 (Rudder / Yaw Servo)
+#define PIN_OUT_CH5        5    // D5 : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
+#define PIN_OUT_CH6        6    // D6 : CH6 (AUX 2 / Potentiometer 2 / Flaps)
+#define PIN_OUT_CH7        7    // D7 : CH7 (AUX 3 / Switch 1 / Gear / Relay)
+#define PIN_OUT_CH8        8    // D8 : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
 
 // Status LED Indicator Pin (Pin A1)
 // Note: On Arduino Nano, the onboard 'L' LED is wired to Pin 13 (SCK clock for NRF24).
@@ -121,7 +121,7 @@ void setup() {
     lastAppliedOutputs[i] = FAILSAFE_VALUES[i];
     servoOutputs[i].writeMicroseconds(currentOutputs[i]);
   }
-  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D2, CH2:D3, CH3:D4, CH4:D5, CH5:D6, CH6:D7, CH7:D8, CH8:A0)."));
+  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
 
   // Initialize NRF24L01+ Transceiver in Receiver Mode
   if (radio.begin()) {

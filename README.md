@@ -94,14 +94,14 @@ rc_tx_rx_8ch/
 
 | Channel / Function | Arduino Nano Pin | Device Connection | Signal Range |
 | :--- | :--- | :--- | :--- |
-| **CH1 Output** | `D0` | Aileron / Steering Servo | Standard 1000–2000µs 50Hz PWM |
+| **CH1 Output** | `D0` (RX) | Aileron / Steering Servo | Standard 1000–2000µs 50Hz PWM |
 | **CH2 Output** | `D2` | Elevator / Pitch Servo | Standard 1000–2000µs 50Hz PWM |
 | **CH3 Output** | `D3` | ESC / Throttle Motor Controller | Auto-Cut to 1000µs on Failsafe |
 | **CH4 Output** | `D4` | Rudder / Yaw Servo | Standard 1000–2000µs 50Hz PWM |
 | **CH5 Output** | `D5` | AUX 1 / Gimbal / Pan Servo | Standard 1000–2000µs 50Hz PWM |
 | **CH6 Output** | `D6` | AUX 2 / Flaps / Pan-Tilt | Standard 1000–2000µs 50Hz PWM |
 | **CH7 Output** | `D7` | AUX 3 / Gear / Relay Switch | Low (1000µs) / High (2000µs) |
-| **CH8 Output** | `A8` (D14) | AUX 4 / Arm Switch / Buzzer | Low (1000µs) / High (2000µs) |
+| **CH8 Output** | `D8` | AUX 4 / Arm Switch / Buzzer | Low (1000µs) / High (2000µs) |
 | **Status LED** | `A1` | Connection Indicator LED | Solid = Connected, Blinking = Failsafe |
 | **NRF24L01 CE** | `D9` | Chip Enable | RF Transceiver Control |
 | **NRF24L01 CSN** | `D10` | SPI Chip Select | RF Transceiver Control |
