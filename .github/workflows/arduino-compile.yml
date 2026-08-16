@@ -1,0 +1,26 @@
+name: Arduino Build & Compile Verification
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Compile Transmitter (TX) & Receiver (RX) Firmware
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:avr:nano:cpu=atmega328
+          libraries: |
+            - RF24
+            - LiquidCrystal I2C
+            - Servo
+          sketch-paths: |
+            TX_8CH
+            RX_8CH

@@ -1,5 +1,6 @@
 # 🎮 8-Channel Professional RC Transmitter & Receiver System
 
+[![Arduino CI](https://github.com/Maker-Yash/Arduino-8Channel-RC-Transmitter-Receiver/actions/workflows/arduino-compile.yml/badge.svg)](https://github.com/Maker-Yash/Arduino-8Channel-RC-Transmitter-Receiver/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Arduino Nano](https://img.shields.io/badge/Platform-Arduino%20Nano-00979C.svg?logo=arduino)](https://www.arduino.cc/)
 [![Language: C++](https://img.shields.io/badge/Language-C%2B%2B-00599C.svg?logo=c%2B%2B)](https://isocpp.org/)
