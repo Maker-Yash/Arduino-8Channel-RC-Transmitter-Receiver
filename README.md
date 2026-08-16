@@ -164,7 +164,7 @@ Install these via the **Arduino IDE Library Manager** (`Sketch` -> `Include Libr
 
 1. **Clone or Download the Repository**:
    ```bash
-   git clone https://github.com/<your-username>/rc_tx_rx_8ch.git
+   git clone https://github.com/Maker-Yash/Arduino-8Channel-RC-Transmitter-Receiver.git
    ```
 2. **Flash the Transmitter (TX)**:
    - Open `TX_8CH/TX_8CH.ino` in the Arduino IDE.
