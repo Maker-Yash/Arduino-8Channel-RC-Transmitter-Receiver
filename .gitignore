@@ -1,0 +1,29 @@
+# Compiled Arduino / Embedded binaries & build artifacts
+*.hex
+*.elf
+*.bin
+*.eep
+*.lss
+*.sym
+*.map
+build/
+Output/
+
+# Editor / IDE directories
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosctrich
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
