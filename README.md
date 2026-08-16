@@ -9,6 +9,36 @@
 
 An advanced 8-channel RC Transmitter (TX) and Receiver (RX) system inspired by professional radios (FlySky FS-i6X / OpenTX / RadioMaster). Engineered for ultra-low latency, robust RF stability, and high performance on standard **Arduino Nano (ATmega328P)** microcontrollers.
 
+<p align="center">
+  <img src="assets/system_overview.jpg" alt="8-Channel RC Transmitter and Receiver System Overview" width="850">
+  <br>
+  <em>Figure 1: Complete 8-Channel Arduino RC Transmitter (TX) and Receiver (RX) System in Operation</em>
+</p>
+
+---
+
+## 📸 Hardware Showcase & Gallery
+
+### 🎮 Transmitter (TX) Unit
+<p align="center">
+  <img src="assets/transmitter_front_view.jpg" alt="Transmitter Front View" width="48%">
+  <img src="assets/transmitter_telemetry_ui.jpg" alt="Transmitter Live Telemetry UI" width="48%">
+</p>
+<p align="center">
+  <img src="assets/transmitter_handheld.jpg" alt="Transmitter Handheld View" width="55%">
+  <br>
+  <em>Figure 2: Custom Red Enclosure with Gimbals, Dual AUX Pots, Switches, Rotary Menu Navigation & 16x2 I2C Real-Time Channel Bar Graph UI</em>
+</p>
+
+### 📡 Receiver (RX) Unit
+<p align="center">
+  <img src="assets/receiver_overview.jpg" alt="Receiver Module Complete Overview" width="32%">
+  <img src="assets/receiver_front_angle.jpg" alt="Receiver Front Angle View" width="32%">
+  <img src="assets/receiver_closeup.jpg" alt="Receiver Close-up View" width="32%">
+  <br>
+  <em>Figure 3: Compact Receiver Unit with High-Gain NRF24L01+ PA/LNA Antenna, 2S 18650 Battery Pack, 8 Servo Channel Rails & Status LED</em>
+</p>
+
 ---
 
 ## 🌟 Key Highlights & Features
@@ -28,6 +58,14 @@ An advanced 8-channel RC Transmitter (TX) and Receiver (RX) system inspired by p
 
 ```text
 rc_tx_rx_8ch/
+├── assets/               # High-resolution hardware and UI photos
+│   ├── system_overview.jpg
+│   ├── transmitter_front_view.jpg
+│   ├── transmitter_telemetry_ui.jpg
+│   ├── transmitter_handheld.jpg
+│   ├── receiver_overview.jpg
+│   ├── receiver_front_angle.jpg
+│   └── receiver_closeup.jpg
 ├── TX_8CH/
 │   └── TX_8CH.ino        # 8-Channel Transmitter firmware (PROGMEM UI, EEPROM, Menus)
 ├── RX_8CH/
