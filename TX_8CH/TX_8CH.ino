@@ -1140,13 +1140,13 @@ void renderEditDrExpo() {
   char lineBuf[17];
   lcd.setCursor(0, 0);
   printProgmemStr(CH_NAMES, selectedChannel);
-  snprintf(lineBuf, sizeof(lineBuf), "  D/R:%3d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), "   D/R:%3d%% %s",
            curModel.rateExpo[selectedChannel].rate,
            selectedSubParam == 0 ? "*" : " ");
   lcd.print(lineBuf);
 
   lcd.setCursor(0, 1);
-  snprintf(lineBuf, sizeof(lineBuf), "    EXPO:%2d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), "     EXPO:%2d%% %s",
            curModel.rateExpo[selectedChannel].expo,
            selectedSubParam == 1 ? "*" : " ");
   lcd.print(lineBuf);
@@ -1218,7 +1218,7 @@ void renderCalibration() {
     lcd.print(F("CLICK TO START >"));
   } else if (calibStep == 1) {
     lcd.setCursor(0, 0);
-    lcd.print(F("CENTER ALL STIK "));
+    lcd.print(F("CENTER ALL STICK"));
     lcd.setCursor(0, 1);
     char buf[17];
     snprintf(buf, sizeof(buf), "A%3d E%3d [CLICK]", (int)filteredAdc[0],

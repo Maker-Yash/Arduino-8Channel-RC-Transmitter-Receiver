@@ -27,9 +27,9 @@
 #define PIN_RF_CE          9    // Chip Enable
 #define PIN_RF_CSN        10    // SPI Chip Select (CSN)
 
-// Receiver Pin Assignments (CH1: D0/RX0, CH2..CH8: D2..D8, Status LED: A1)
-// CH1 uses D0/RX0; CH2..CH8 use D2..D8; Status LED uses A1.
-#define PIN_OUT_CH1        0    // RX0 : CH1 (Aileron / Roll Servo)
+// Receiver Pin Assignments (CH1: A0, CH2..CH8: D2..D8, Status LED: A1)
+// Note: Pin A0 is used for CH1 to prevent hardware conflict with USB/Serial on Pin D0 (RX0).
+#define PIN_OUT_CH1       A0    // A0 : CH1 (Aileron / Steering / Roll Servo)
 #define PIN_OUT_CH2        2    // D2 : CH2 (Elevator / Pitch Servo)
 #define PIN_OUT_CH3        3    // D3 : CH3 (Throttle / ESC Motor Controller)
 #define PIN_OUT_CH4        4    // D4 : CH4 (Rudder / Yaw Servo)
@@ -121,7 +121,7 @@ void setup() {
     lastAppliedOutputs[i] = FAILSAFE_VALUES[i];
     servoOutputs[i].writeMicroseconds(currentOutputs[i]);
   }
-  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
+  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:A0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
 
   // Initialize NRF24L01+ Transceiver in Receiver Mode
   if (radio.begin()) {
