@@ -133,7 +133,7 @@ rc_tx_rx_8ch/
 
 | Channel / Function | Arduino Nano Pin | Device Connection | Signal Range |
 | :--- | :--- | :--- | :--- |
-| **CH1 Output** | `A0` | Aileron / Steering Servo | Standard 1000–2000µs 50Hz PWM |
+| **CH1 Output** | `D0` (RX0) | Aileron / Steering Servo | Standard 1000–2000µs 50Hz PWM (UART RX disabled in code) |
 | **CH2 Output** | `D2` | Elevator / Pitch Servo | Standard 1000–2000µs 50Hz PWM |
 | **CH3 Output** | `D3` | ESC / Throttle Motor Controller | Auto-Cut to 1000µs on Failsafe |
 | **CH4 Output** | `D4` | Rudder / Yaw Servo | Standard 1000–2000µs 50Hz PWM |

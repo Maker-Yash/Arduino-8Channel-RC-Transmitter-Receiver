@@ -27,16 +27,17 @@
 #define PIN_RF_CE          9    // Chip Enable
 #define PIN_RF_CSN        10    // SPI Chip Select (CSN)
 
-// Receiver Pin Assignments (CH1: A0, CH2..CH8: D2..D8, Status LED: A1)
-// Note: Pin A0 is used for CH1 to prevent hardware conflict with USB/Serial on Pin D0 (RX0).
-#define PIN_OUT_CH1       A0    // A0 : CH1 (Aileron / Steering / Roll Servo)
-#define PIN_OUT_CH2        2    // D2 : CH2 (Elevator / Pitch Servo)
-#define PIN_OUT_CH3        3    // D3 : CH3 (Throttle / ESC Motor Controller)
-#define PIN_OUT_CH4        4    // D4 : CH4 (Rudder / Yaw Servo)
-#define PIN_OUT_CH5        5    // D5 : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
-#define PIN_OUT_CH6        6    // D6 : CH6 (AUX 2 / Potentiometer 2 / Flaps)
-#define PIN_OUT_CH7        7    // D7 : CH7 (AUX 3 / Switch 1 / Gear / Relay)
-#define PIN_OUT_CH8        8    // D8 : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
+// Receiver Pin Assignments (CH1: D0/RX0, CH2..CH8: D2..D8, Status LED: A1)
+// Note: Pin D0 is used for CH1. The UART RX hardware receiver is disabled in setup()
+// (UCSR0B &= ~(1 << RXEN0)) so Pin D0 functions as a standard digital GPIO servo output.
+#define PIN_OUT_CH1        0    // D0/RX0 : CH1 (Aileron / Steering / Roll Servo)
+#define PIN_OUT_CH2        2    // D2     : CH2 (Elevator / Pitch Servo)
+#define PIN_OUT_CH3        3    // D3     : CH3 (Throttle / ESC Motor Controller)
+#define PIN_OUT_CH4        4    // D4     : CH4 (Rudder / Yaw Servo)
+#define PIN_OUT_CH5        5    // D5     : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
+#define PIN_OUT_CH6        6    // D6     : CH6 (AUX 2 / Potentiometer 2 / Flaps)
+#define PIN_OUT_CH7        7    // D7     : CH7 (AUX 3 / Switch 1 / Gear / Relay)
+#define PIN_OUT_CH8        8    // D8     : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
 
 // Status LED Indicator Pin (Pin A1)
 // Note: On Arduino Nano, the onboard 'L' LED is wired to Pin 13 (SCK clock for NRF24).
@@ -107,6 +108,15 @@ void printSerialDiagnostics();
 // ============================================================================
 void setup() {
   Serial.begin(115200);
+
+  // Disable UART Receiver hardware override on Pin D0 (RX0).
+  // This frees Pin D0 so Servo.h can drive it as a standard GPIO output for CH1,
+  // while keeping Serial TX (Pin D1) active for diagnostics!
+#if defined(UCSR0B) && defined(RXEN0)
+  UCSR0B &= ~(1 << RXEN0);
+#endif
+  pinMode(PIN_OUT_CH1, OUTPUT);
+
   Serial.println(F("\n=============================================="));
   Serial.println(F("  FLYMASTER RX8 - 8CH RECEIVER INITIALIZING"));
   Serial.println(F("=============================================="));
@@ -121,7 +131,7 @@ void setup() {
     lastAppliedOutputs[i] = FAILSAFE_VALUES[i];
     servoOutputs[i].writeMicroseconds(currentOutputs[i]);
   }
-  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:A0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
+  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
 
   // Initialize NRF24L01+ Transceiver in Receiver Mode
   if (radio.begin()) {
