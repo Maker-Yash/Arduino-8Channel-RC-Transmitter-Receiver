@@ -15,12 +15,13 @@
  *                   - 2x 2-Axis Joysticks (A0, A1, A2, A3)
  *                   - 2x Potentiometers (A6, A7 - Full 0% to 100% Span)
  *                   - 2x Toggle Switches (D5, D6 with Internal Pullups)
- * Multi-Vehicle   : 4 Model Profiles in EEPROM (PLANE, DRONE, RC CAR, DELTA)
+ * Multi-Vehicle   : 4 Generic Model Profiles in EEPROM (MODEL 1..MODEL 4)
  * Pro Features    : - Safe Multi-Point Calibration Suite with Sanity
  * Verification
  *                   - Dual Rates (D/R: 50% - 100%) & Exponential (EXPO: 0% -
  * 70%)
  *                   - Wing / Tail Mixing (Normal, Elevon / Delta Wing, V-Tail)
+ *                   - Onboard Model Name & Stick Deadband Customization
  * Performance     : - Fast ADC Prescaler (500kHz ADC clock, < 1ms acquisition)
  *                   - Ultra-Responsive Low-Lag EMA Filter
  *                   - Fast 400kHz I2C bus with 30ms (~33 FPS) LCD Refresh
@@ -78,7 +79,7 @@ const uint8_t RF_PIPE_ADDR[6] = "RC001";
 // DATA STRUCTURES & EEPROM PERSISTENCE (ULTRA-LEAN ARCHITECTURE)
 // ============================================================================
 
-#define EEPROM_MAGIC_KEY 0x8C10 // Validation Key
+#define EEPROM_MAGIC_KEY 0x8C12 // Validation Key (v1.2 generic models)
 #define TOTAL_MODELS 4          // 4 Model Profiles in EEPROM
 #define EEPROM_BASE_ADDR 10     // Starting offset for Model 0
 #define EEPROM_MODEL_SIZE 150   // Stride per model in EEPROM
@@ -103,7 +104,7 @@ struct ChannelConfig {
 };
 
 struct ModelProfile {
-  char name[8];         // Model Name (e.g. "PLANE ")
+  char name[8];         // Model Name (e.g. "MODEL 1")
   ChannelConfig ch[8];  // 8 Channel parameters (128 bytes)
   RateExpo rateExpo[3]; // 0: AIL, 1: ELE, 2: RUD (6 bytes)
   uint8_t wingMix;      // WingMixMode (1 byte)
@@ -148,13 +149,15 @@ const char menu_3[] PROGMEM = "4.REVERSE CH  ";
 const char menu_4[] PROGMEM = "5.CALIBRATION ";
 const char menu_5[] PROGMEM = "6.WING MIXING ";
 const char menu_6[] PROGMEM = "7.MODEL SELECT";
-const char menu_7[] PROGMEM = "8.SET FAILSAFE";
-const char menu_8[] PROGMEM = "9.RESET MODEL ";
-const char menu_9[] PROGMEM = "10.SAVE & EXIT";
-const char *const MENU_ITEMS[10] PROGMEM = {menu_0, menu_1, menu_2, menu_3,
-                                            menu_4, menu_5, menu_6, menu_7,
-                                            menu_8, menu_9};
-const uint8_t TOTAL_MENU_ITEMS = 10;
+const char menu_7[] PROGMEM = "8.MODEL NAME  ";
+const char menu_8[] PROGMEM = "9.DEADBAND SET";
+const char menu_9[] PROGMEM = "10.SET FAILSAF";
+const char menu_10[] PROGMEM = "11.RESET MODEL";
+const char menu_11[] PROGMEM = "12.SAVE & EXIT";
+const char *const MENU_ITEMS[12] PROGMEM = {
+    menu_0, menu_1, menu_2, menu_3, menu_4, menu_5,
+    menu_6, menu_7, menu_8, menu_9, menu_10, menu_11};
+const uint8_t TOTAL_MENU_ITEMS = 12;
 
 const uint8_t ANALOG_PINS[6] = {PIN_JOY_CH1, PIN_JOY_CH2, PIN_JOY_CH3,
                                 PIN_JOY_CH4, PIN_POT_CH5, PIN_POT_CH6};
@@ -174,6 +177,8 @@ enum SystemState {
   STATE_MENU_CALIBRATE,
   STATE_MENU_WING_MIX,
   STATE_MENU_MODEL_SELECT,
+  STATE_MENU_EDIT_NAME,
+  STATE_MENU_EDIT_DEADBAND,
   STATE_MENU_FAILSAFE
 };
 
@@ -185,6 +190,7 @@ const uint8_t TOTAL_HOME_PAGES = 5;
 int8_t currentMenuItem = 0;
 int8_t selectedChannel = 0;
 int8_t selectedSubParam = 0;
+uint8_t editNameCharIdx = 0;
 
 // Interactive Calibration Wizard State Variables
 uint8_t calibStep = 0;
@@ -281,7 +287,10 @@ void renderEditReverse();
 void renderCalibration();
 void renderWingMix();
 void renderModelSelect();
+void renderEditModelName();
+void renderEditDeadband();
 void renderFailsafe();
+char cycleChar(char c, int8_t delta);
 void drawProgressBar(uint8_t col, uint8_t row, uint8_t width, uint16_t val,
                      uint16_t minVal, uint16_t maxVal);
 void printProgmemStr(const char *const *table, uint8_t index);
@@ -522,8 +531,14 @@ void handleShortClick() {
     } else if (currentMenuItem == 6) {
       currentState = STATE_MENU_MODEL_SELECT;
     } else if (currentMenuItem == 7) {
-      currentState = STATE_MENU_FAILSAFE;
+      currentState = STATE_MENU_EDIT_NAME;
+      editNameCharIdx = 0;
     } else if (currentMenuItem == 8) {
+      currentState = STATE_MENU_EDIT_DEADBAND;
+      selectedChannel = 0;
+    } else if (currentMenuItem == 9) {
+      currentState = STATE_MENU_FAILSAFE;
+    } else if (currentMenuItem == 10) {
       resetModelDefaults(activeModelIdx);
       saveCurrentModelToEEPROM();
       lcd.clear();
@@ -533,7 +548,7 @@ void handleShortClick() {
       lcd.print(F("DEFAULTS RESTORE"));
       delay(700);
       lcd.clear();
-    } else if (currentMenuItem == 9) {
+    } else if (currentMenuItem == 11) {
       saveCurrentModelToEEPROM();
       currentState = STATE_HOME_PAGES;
       lcd.clear();
@@ -653,6 +668,27 @@ void handleShortClick() {
       lcd.clear();
     } else if (calibStep == 3) {
       calibStep = 0;
+      currentState = STATE_MENU_LIST;
+      lcd.clear();
+    }
+    break;
+
+  case STATE_MENU_EDIT_NAME:
+    editNameCharIdx++;
+    if (editNameCharIdx >= 7) {
+      editNameCharIdx = 0;
+      curModel.name[7] = '\0';
+      saveCurrentModelToEEPROM();
+      currentState = STATE_MENU_LIST;
+      lcd.clear();
+    }
+    break;
+
+  case STATE_MENU_EDIT_DEADBAND:
+    selectedChannel++;
+    if (selectedChannel >= 4) {
+      selectedChannel = 0;
+      saveCurrentModelToEEPROM();
       currentState = STATE_MENU_LIST;
       lcd.clear();
     }
@@ -922,6 +958,12 @@ void renderLCD() {
   case STATE_MENU_MODEL_SELECT:
     renderModelSelect();
     break;
+  case STATE_MENU_EDIT_NAME:
+    renderEditModelName();
+    break;
+  case STATE_MENU_EDIT_DEADBAND:
+    renderEditDeadband();
+    break;
   case STATE_MENU_FAILSAFE:
     renderFailsafe();
     break;
@@ -1004,10 +1046,14 @@ void renderHomePage() {
     snprintf(buf, sizeof(buf), "%4d", payload.channels[7]);
     lcd.print(buf);
   } else {
-    // Page 5: Multi-Vehicle Model Overview
+    // Page 5: Model Memory Overview
+    char nameBuf[8];
+    snprintf(nameBuf, sizeof(nameBuf), "%-7s", curModel.name);
     lcd.setCursor(0, 0);
     lcd.print(F("M:"));
-    lcd.print(curModel.name);
+    lcd.print(nameBuf);
+    lcd.setCursor(9, 0);
+    lcd.print(' ');
     lcd.setCursor(10, 0);
     if (curModel.wingMix == MIX_ELEVON)
       lcd.print(F("[ELEV]"));
@@ -1094,13 +1140,13 @@ void renderEditDrExpo() {
   char lineBuf[17];
   lcd.setCursor(0, 0);
   printProgmemStr(CH_NAMES, selectedChannel);
-  snprintf(lineBuf, sizeof(lineBuf), " D/R:%3d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), "  D/R:%3d%% %s",
            curModel.rateExpo[selectedChannel].rate,
            selectedSubParam == 0 ? "*" : " ");
   lcd.print(lineBuf);
 
   lcd.setCursor(0, 1);
-  snprintf(lineBuf, sizeof(lineBuf), "   EXPO:%2d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), "    EXPO:%2d%% %s",
            curModel.rateExpo[selectedChannel].expo,
            selectedSubParam == 1 ? "*" : " ");
   lcd.print(lineBuf);
@@ -1235,19 +1281,95 @@ void renderModelSelect() {
   lcd.print(F("SELECT PROFILE: "));
   lcd.setCursor(0, 1);
   char buf[17];
-  snprintf(buf, sizeof(buf), "> %s (%d/%d) ", curModel.name, activeModelIdx + 1,
+  snprintf(buf, sizeof(buf), "> %-7s (%d/%d)", curModel.name, activeModelIdx + 1,
            TOTAL_MODELS);
   lcd.print(buf);
 }
 
 // ----------------------------------------------------------------------------
-// Submenu 8: Failsafe Snapshot
+// Submenu 8: Model Name Editor (Interactive Character Selection)
+// ----------------------------------------------------------------------------
+void renderEditModelName() {
+  int8_t delta = readEncoderDelta();
+  if (delta != 0) {
+    curModel.name[editNameCharIdx] =
+        cycleChar(curModel.name[editNameCharIdx], delta);
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print(F("NAME: ["));
+  for (uint8_t i = 0; i < 7; i++) {
+    char ch = curModel.name[i];
+    if (ch < 32 || ch > 126)
+      ch = ' ';
+    lcd.write(ch);
+  }
+  lcd.print(F("] "));
+
+  lcd.setCursor(0, 1);
+  lcd.print(F("       "));
+  for (uint8_t i = 0; i < 7; i++) {
+    if (i == editNameCharIdx) {
+      lcd.write('^');
+    } else {
+      lcd.write(' ');
+    }
+  }
+  lcd.print(F(" [OK]"));
+}
+
+// ----------------------------------------------------------------------------
+// Submenu 9: Channel Deadband Adjustment (CH1 - CH4)
+// ----------------------------------------------------------------------------
+void renderEditDeadband() {
+  if (selectedChannel > 3)
+    selectedChannel = 3;
+
+  int8_t delta = readEncoderDelta();
+  if (delta != 0) {
+    curModel.ch[selectedChannel].deadband = (uint8_t)constrain(
+        (int)curModel.ch[selectedChannel].deadband + delta, 0, 30);
+  }
+
+  char lineBuf[17];
+  lcd.setCursor(0, 0);
+  lcd.print(F("DEADBAND "));
+  printProgmemStr(CH_NAMES, selectedChannel);
+  lcd.print(F("    "));
+
+  lcd.setCursor(0, 1);
+  snprintf(lineBuf, sizeof(lineBuf), "ZONE:+-%2d [NEXT]",
+           curModel.ch[selectedChannel].deadband);
+  lcd.print(lineBuf);
+}
+
+// ----------------------------------------------------------------------------
+// Submenu 10: Failsafe Snapshot
 // ----------------------------------------------------------------------------
 void renderFailsafe() {
   lcd.setCursor(0, 0);
   lcd.print(F(" SET FAILSAFE ? "));
   lcd.setCursor(0, 1);
   lcd.print(F(" CLICK TO STORE "));
+}
+
+// ============================================================================
+// CHARACTER CYCLING HELPER FOR MODEL NAME EDITOR
+// ============================================================================
+char cycleChar(char c, int8_t delta) {
+  const char charset[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_#.";
+  const uint8_t len = sizeof(charset) - 1;
+  int8_t idx = 0;
+  for (uint8_t i = 0; i < len; i++) {
+    if (charset[i] == c) {
+      idx = i;
+      break;
+    }
+  }
+  idx = (idx + delta) % (int8_t)len;
+  if (idx < 0)
+    idx += len;
+  return charset[idx];
 }
 
 // ============================================================================
@@ -1293,6 +1415,14 @@ void loadModelFromEEPROM(uint8_t modelIdx) {
                 curModel.ch[0].maxUs >= 1500 && curModel.ch[0].maxUs <= 2200 &&
                 curModel.ch[0].adcMin < curModel.ch[0].adcMax);
 
+  // Ensure name is null-terminated and printable ASCII
+  curModel.name[7] = '\0';
+  for (uint8_t i = 0; i < 7; i++) {
+    if (curModel.name[i] < 32 || curModel.name[i] > 126) {
+      curModel.name[i] = ' ';
+    }
+  }
+
   if (!valid) {
     resetModelDefaults(modelIdx);
     saveCurrentModelToEEPROM();
@@ -1321,41 +1451,11 @@ void switchModel(uint8_t newModelIdx) {
 }
 
 void resetModelDefaults(uint8_t modelIdx) {
-  switch (modelIdx) {
-  case 0:
-    snprintf(curModel.name, sizeof(curModel.name), "PLANE ");
-    curModel.wingMix = MIX_NORMAL;
-    curModel.rateExpo[0] = {100, 20}; // AIL: 100% Rate, 20% Expo
-    curModel.rateExpo[1] = {100, 20}; // ELE: 100% Rate, 20% Expo
-    curModel.rateExpo[2] = {100, 15}; // RUD: 100% Rate, 15% Expo
-    break;
-
-  case 1:
-    snprintf(curModel.name, sizeof(curModel.name), "DRONE ");
-    curModel.wingMix = MIX_NORMAL;
-    curModel.rateExpo[0] = {100, 10}; // Roll: 100% Rate, 10% Expo
-    curModel.rateExpo[1] = {100, 10}; // Pitch: 100% Rate, 10% Expo
-    curModel.rateExpo[2] = {100, 10}; // Yaw: 100% Rate, 10% Expo
-    break;
-
-  case 2:
-    snprintf(curModel.name, sizeof(curModel.name), "RC CAR");
-    curModel.wingMix = MIX_NORMAL;
-    curModel.rateExpo[0] = {
-        100, 30}; // Steering: 100% Rate, 30% Expo (Smooth High-Speed Control)
-    curModel.rateExpo[1] = {100, 10}; // Throttle: 100% Rate, 10% Expo
-    curModel.rateExpo[2] = {100, 0};
-    break;
-
-  case 3:
-  default:
-    snprintf(curModel.name, sizeof(curModel.name), "DELTA ");
-    curModel.wingMix = MIX_ELEVON; // Elevon Mix (Roll + Pitch for Flying Wings)
-    curModel.rateExpo[0] = {85, 25}; // Elevon Roll
-    curModel.rateExpo[1] = {85, 25}; // Elevon Pitch
-    curModel.rateExpo[2] = {100, 0};
-    break;
-  }
+  snprintf(curModel.name, sizeof(curModel.name), "MODEL %d", modelIdx + 1);
+  curModel.wingMix = MIX_NORMAL;
+  curModel.rateExpo[0] = {100, 0}; // AIL: 100% Rate, 0% Expo
+  curModel.rateExpo[1] = {100, 0}; // ELE: 100% Rate, 0% Expo
+  curModel.rateExpo[2] = {100, 0}; // RUD: 100% Rate, 0% Expo
 
   for (uint8_t i = 0; i < 8; i++) {
     curModel.ch[i].trim = 0;

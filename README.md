@@ -45,7 +45,8 @@ An advanced 8-channel RC Transmitter (TX) and Receiver (RX) system inspired by p
 
 - **⚡ Fast 400kHz I2C & 33 FPS Refresh**: Fluid graphic slider bars and real-time responsiveness on a 16x2 I2C LCD.
 - **🔄 Interrupt-Driven Rotary Encoder**: Gray-code state machine with hardware interrupts (`INT0`/`INT1`) and digital debounce.
-- **🚀 4 Multi-Vehicle Model Profiles**: Stored in EEPROM (Plane, Drone, RC Car, Delta Wing) with independent trims, endpoints, dual rates, expo curves, and wing mixes.
+- **🚀 4 Generic Model Memory Profiles**: Stored in EEPROM (`MODEL 1` to `MODEL 4`) with independent trims, endpoints, dual rates, expo curves, wing mixes, deadbands, and custom names.
+- **✏️ Onboard Model Customization**: Interactive character-by-character model renaming and channel deadband adjustment right on the transmitter.
 - **🎯 Dual Rates (D/R) & Exponential (EXPO)**: True cubic polynomial curves for silky-smooth center stick response without losing full throw.
 - **🎛️ Wing / Tail Mixing**: Native support for **Normal**, **Elevon / Delta Wing** (CH1 + CH2), and **V-Tail** (CH2 + CH4).
 - **🛡️ Failsafe & Jitter Filter**: Automatic throttle cut (1000µs) and neutral channel lock upon signal loss; hysteresis filter eliminates servo buzzing.
@@ -153,39 +154,41 @@ rc_tx_rx_8ch/
 
 ---
 
-## 🚗 4 Multi-Vehicle Model Profiles
+## 🗃️ 4 Generic Model Profiles & Onboard Memory
 
-The transmitter contains 4 independent model memory banks saved directly into EEPROM:
+The transmitter features 4 independent generic model memory banks saved directly into EEPROM:
 
-| Slot | Model Name | Ideal For | Mix Type | Preset Rates & Expo |
-| :---: | :--- | :--- | :---: | :--- |
-| **1** | **`PLANE`** | Standard Airplanes, Trainers, Gliders, Scale RC | `NORMAL` | `AIL`: 100%/20% Expo, `ELE`: 100%/20% Expo, `RUD`: 100%/15% Expo |
-| **2** | **`DRONE`** | FPV Racing Quads, Camera Multirotors, Betaflight | `NORMAL` | `Roll`: 100%/10% Expo, `Pitch`: 100%/10% Expo, `Yaw`: 100%/10% Expo |
-| **3** | **`RC CAR`** | Buggies, Drift Cars, Crawlers, Speed Boats | `NORMAL` | `Steering`: 100%/30% Expo (High-Speed Stability), `Throttle`: 100%/10% |
-| **4** | **`DELTA`** | Flying Wings (ZOHD, SonicModell), Delta Jets | `ELEVON` | Auto Elevon Mix (Roll + Pitch on CH1/CH2), `Rates`: 85%/25% Expo |
+| Slot | Default Name | User Customizable | Mix Mode Options | Default Settings |
+| :---: | :--- | :---: | :---: | :--- |
+| **1** | **`MODEL 1`** | ✅ Yes (Onboard Name Editor) | `NORMAL`, `ELEVON`, `V-TAIL` | 100% Rates, 0% Expo, Neutral Trims, Standard Deadbands |
+| **2** | **`MODEL 2`** | ✅ Yes (Onboard Name Editor) | `NORMAL`, `ELEVON`, `V-TAIL` | 100% Rates, 0% Expo, Neutral Trims, Standard Deadbands |
+| **3** | **`MODEL 3`** | ✅ Yes (Onboard Name Editor) | `NORMAL`, `ELEVON`, `V-TAIL` | 100% Rates, 0% Expo, Neutral Trims, Standard Deadbands |
+| **4** | **`MODEL 4`** | ✅ Yes (Onboard Name Editor) | `NORMAL`, `ELEVON`, `V-TAIL` | 100% Rates, 0% Expo, Neutral Trims, Standard Deadbands |
 
 ---
 
 ## 🕹️ Menu System & Navigation
 
 ### Entering & Using the Menu
-- **Enter Settings**: Long-press the Rotary Encoder button for **2 seconds**.
+- **Enter Settings**: Long-press the Rotary Encoder button for **1.8 seconds**.
 - **Scroll Items**: Rotate the knob clockwise or counter-clockwise.
 - **Select / Enter**: Short-click the encoder button.
-- **Adjust Values**: Rotate knob to increment / decrement numbers.
-- **Save / Exit**: Short-click to confirm, or scroll to **`10. SAVE & EXIT`** (or hold for 2s).
+- **Adjust Values**: Rotate knob to increment / decrement numbers or cycle characters.
+- **Save / Exit**: Short-click to confirm, or scroll to **`12. SAVE & EXIT`** (or hold encoder button for 1.8s).
 
-### 10-Item Menu Structure
-1. **`1. DIGITAL TRIMS`**: Fine neutral adjustment (-150µs to +150µs) for CH1..CH4 with live feedback.
+### 12-Item Pro Menu Structure
+1. **`1. DIGITAL TRIM`**: Fine neutral adjustment (-150µs to +150µs) for CH1..CH4 with live feedback.
 2. **`2. D/R & EXPO`**: Configurable rates (50% to 100%) and exponential smoothing curves (0% to 70%).
 3. **`3. ENDPOINTS`**: Independent travel limits (800µs to 2200µs) for all 8 channels.
-4. **`4. REVERSE CH`**: Invert output direction for any servo channel.
+4. **`4. REVERSE CH`**: Invert output direction for any channel (CH1 to CH8).
 5. **`5. CALIBRATION`**: Safe step-by-step stick & potentiometer calibration wizard.
 6. **`6. WING MIXING`**: Select `NORMAL`, `ELEVON` (Delta Wing), or `V-TAIL`.
-7. **`7. MODEL SELECT`**: Switch active vehicle profile (`PLANE`, `DRONE`, `RC CAR`, `DELTA`).
-8. **`8. SET FAILSAFE`**: Capture current stick positions as custom receiver failsafe settings.
-9. **`9. RESET MODEL`**: Restore active model profile to factory defaults.
-10. **`10. SAVE & EXIT`**: Commit all RAM changes to EEPROM.
+7. **`7. MODEL SELECT`**: Switch active profile (`MODEL 1`, `MODEL 2`, `MODEL 3`, `MODEL 4`).
+8. **`8. MODEL NAME`**: Interactive character-by-character on-screen model renaming tool.
+9. **`9. DEADBAND SET`**: Tweak center deadband window (0 to 30 ADC units) on CH1..CH4 to eliminate jitter.
+10. **`10. SET FAILSAFE`**: Capture current stick positions as custom receiver failsafe settings.
+11. **`11. RESET MODEL`**: Restore active model profile to generic baseline defaults.
+12. **`12. SAVE & EXIT`**: Commit all RAM changes to EEPROM and return to home screen.
 
 ---
 
