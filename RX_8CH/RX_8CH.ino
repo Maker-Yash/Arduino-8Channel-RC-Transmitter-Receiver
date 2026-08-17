@@ -5,76 +5,79 @@
  * Microcontroller : Arduino Nano (ATmega328P, 16MHz, 5V)
  * RF Transceiver  : NRF24L01+ (2.4 GHz) with PA + LNA
  * Outputs         : 8 Standard 50Hz Servo PWM Channels (1000us - 2000us)
- * Failsafe        : Auto-Throttle CUT (1000us) & Center Neutral (1500us) on Lost Link
- * Jitter Filter   : Pulse Stabilization & Hysteresis to Prevent Servo Buzzing
- * Telemetry       : Bi-directional Auto-ACK Transmit Confirmation to TX
+ * Failsafe        : Auto-Throttle CUT (1000us) & Center Neutral (1500us) on
+ * Lost Link Jitter Filter   : Pulse Stabilization & Hysteresis to Prevent Servo
+ * Buzzing Telemetry       : Bi-directional Auto-ACK Transmit Confirmation to TX
  * Link Status     : Dedicated Connection Status LED (Pin A1)
  *                   - SOLID ON  = Connected to Transmitter (Live Link OK)
  *                   - BLINKING  = Disconnected / Signal Lost / Failsafe Active
  * ============================================================================
  */
 
-#include <SPI.h>
-#include <nRF24L01.h>
 #include <RF24.h>
+#include <SPI.h>
 #include <Servo.h>
+#include <nRF24L01.h>
+
 
 // ============================================================================
 // HARDWARE PIN DEFINITIONS
 // ============================================================================
 
 // NRF24L01 RF Module Pins
-#define PIN_RF_CE          9    // Chip Enable
-#define PIN_RF_CSN        10    // SPI Chip Select (CSN)
+#define PIN_RF_CE 9   // Chip Enable
+#define PIN_RF_CSN 10 // SPI Chip Select (CSN)
 
 // Receiver Pin Assignments (CH1: D0/RX0, CH2..CH8: D2..D8, Status LED: A1)
-// Note: Pin D0 is used for CH1. The UART RX hardware receiver is disabled in setup()
-// (UCSR0B &= ~(1 << RXEN0)) so Pin D0 functions as a standard digital GPIO servo output.
-#define PIN_OUT_CH1        0    // D0/RX0 : CH1 (Aileron / Steering / Roll Servo)
-#define PIN_OUT_CH2        2    // D2     : CH2 (Elevator / Pitch Servo)
-#define PIN_OUT_CH3        3    // D3     : CH3 (Throttle / ESC Motor Controller)
-#define PIN_OUT_CH4        4    // D4     : CH4 (Rudder / Yaw Servo)
-#define PIN_OUT_CH5        5    // D5     : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
-#define PIN_OUT_CH6        6    // D6     : CH6 (AUX 2 / Potentiometer 2 / Flaps)
-#define PIN_OUT_CH7        7    // D7     : CH7 (AUX 3 / Switch 1 / Gear / Relay)
-#define PIN_OUT_CH8        8    // D8     : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
+// Note: Pin D0 is used for CH1. The UART RX hardware receiver is disabled in
+// setup() (UCSR0B &= ~(1 << RXEN0)) so Pin D0 functions as a standard digital
+// GPIO servo output.
+#define PIN_OUT_CH1 0 // D0/RX0 : CH1 (Aileron / Steering / Roll Servo)
+#define PIN_OUT_CH2 2 // D2     : CH2 (Elevator / Pitch Servo)
+#define PIN_OUT_CH3 3 // D3     : CH3 (Throttle / ESC Motor Controller)
+#define PIN_OUT_CH4 4 // D4     : CH4 (Rudder / Yaw Servo)
+#define PIN_OUT_CH5 5 // D5     : CH5 (AUX 1 / Potentiometer 1 / Gimbal)
+#define PIN_OUT_CH6 6 // D6     : CH6 (AUX 2 / Potentiometer 2 / Flaps)
+#define PIN_OUT_CH7 7 // D7     : CH7 (AUX 3 / Switch 1 / Gear / Relay)
+#define PIN_OUT_CH8 8 // D8     : CH8 (AUX 4 / Switch 2 / Buzzer / Arm)
 
 // Status LED Indicator Pin (Pin A1)
-// Note: On Arduino Nano, the onboard 'L' LED is wired to Pin 13 (SCK clock for NRF24).
-// Pin A1 provides a clean, dedicated connection status LED with zero RF interference.
-#define PIN_STATUS_LED    A1    // A1 : Solid = Connected, Blinking = Failsafe / Signal Lost
+// Note: On Arduino Nano, the onboard 'L' LED is wired to Pin 13 (SCK clock for
+// NRF24). Pin A1 provides a clean, dedicated connection status LED with zero RF
+// interference.
+#define PIN_STATUS_LED                                                         \
+  A1 // A1 : Solid = Connected, Blinking = Failsafe / Signal Lost
 
 RF24 radio(PIN_RF_CE, PIN_RF_CSN);
 const uint8_t RF_PIPE_ADDR[6] = "RC001";
 
 Servo servoOutputs[8];
-const uint8_t SERVO_PINS[8] = {
-  PIN_OUT_CH1, PIN_OUT_CH2, PIN_OUT_CH3, PIN_OUT_CH4,
-  PIN_OUT_CH5, PIN_OUT_CH6, PIN_OUT_CH7, PIN_OUT_CH8
-};
+const uint8_t SERVO_PINS[8] = {PIN_OUT_CH1, PIN_OUT_CH2, PIN_OUT_CH3,
+                               PIN_OUT_CH4, PIN_OUT_CH5, PIN_OUT_CH6,
+                               PIN_OUT_CH7, PIN_OUT_CH8};
 
 // ============================================================================
 // DATA STRUCTURES & FAILSAFE PRESETS
 // ============================================================================
 
 struct RadioPayload {
-  uint16_t channels[8];   // Microsecond values (800us - 2200us)
-  uint8_t  packetId;      // Sequence counter
-  uint8_t  flags;         // Telemetry / status flags
+  uint16_t channels[8]; // Microsecond values (800us - 2200us)
+  uint8_t packetId;     // Sequence counter
+  uint8_t flags;        // Telemetry / status flags
 };
 
 RadioPayload receivedPayload;
 
 // Safe Default Failsafe Values (Throttle CUT @ 1000us, others Neutral @ 1500us)
 const uint16_t FAILSAFE_VALUES[8] = {
-  1500, // CH1: Aileron Neutral
-  1500, // CH2: Elevator Neutral
-  1000, // CH3: Throttle CUT (Motor OFF - Critical Safety)
-  1500, // CH4: Rudder Neutral
-  1500, // CH5: AUX 1 Neutral
-  1500, // CH6: AUX 2 Neutral
-  1000, // CH7: Switch 1 OFF / Low
-  1000  // CH8: Switch 2 OFF / Low
+    1500, // CH1: Aileron Neutral
+    1500, // CH2: Elevator Neutral
+    1000, // CH3: Throttle CUT (Motor OFF - Critical Safety)
+    1500, // CH4: Rudder Neutral
+    1500, // CH5: AUX 1 Neutral
+    1500, // CH6: AUX 2 Neutral
+    1000, // CH7: Switch 1 OFF / Low
+    1000  // CH8: Switch 2 OFF / Low
 };
 
 // Active & Filtered Output Pulse Widths
@@ -83,7 +86,8 @@ uint16_t lastAppliedOutputs[8];
 
 // Link & Failsafe Watchdog Variables
 uint32_t lastPacketTime = 0;
-const uint32_t FAILSAFE_TIMEOUT_MS = 500;  // Trigger failsafe if no RF packet for 500ms
+const uint32_t FAILSAFE_TIMEOUT_MS =
+    500; // Trigger failsafe if no RF packet for 500ms
 bool isFailsafeActive = true;
 uint32_t totalPacketsReceived = 0;
 
@@ -93,7 +97,7 @@ bool ledState = false;
 
 // Serial Diagnostics Timing
 uint32_t lastSerialTime = 0;
-const uint32_t SERIAL_INTERVAL_MS = 200;   // 5Hz diagnostics printout
+const uint32_t SERIAL_INTERVAL_MS = 200; // 5Hz diagnostics printout
 
 // ============================================================================
 // FUNCTION PROTOTYPES
@@ -110,8 +114,8 @@ void setup() {
   Serial.begin(115200);
 
   // Disable UART Receiver hardware override on Pin D0 (RX0).
-  // This frees Pin D0 so Servo.h can drive it as a standard GPIO output for CH1,
-  // while keeping Serial TX (Pin D1) active for diagnostics!
+  // This frees Pin D0 so Servo.h can drive it as a standard GPIO output for
+  // CH1, while keeping Serial TX (Pin D1) active for diagnostics!
 #if defined(UCSR0B) && defined(RXEN0)
   UCSR0B &= ~(1 << RXEN0);
 #endif
@@ -131,20 +135,23 @@ void setup() {
     lastAppliedOutputs[i] = FAILSAFE_VALUES[i];
     servoOutputs[i].writeMicroseconds(currentOutputs[i]);
   }
-  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D0, CH2:D2, CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
+  Serial.println(F("[SYSTEM] 8 Servo PWM Outputs Attached (CH1:D0, CH2:D2, "
+                   "CH3:D3, CH4:D4, CH5:D5, CH6:D6, CH7:D7, CH8:D8)."));
 
   // Initialize NRF24L01+ Transceiver in Receiver Mode
   if (radio.begin()) {
     radio.openReadingPipe(1, RF_PIPE_ADDR);
     radio.setPALevel(RF24_PA_MAX);
-    radio.setDataRate(RF24_250KBPS);      // 250kbps for maximum range & noise immunity
-    radio.setChannel(108);                // 2.508 GHz channel
-    radio.setAutoAck(true);               // Auto-ACK confirmation back to TX
+    radio.setDataRate(
+        RF24_250KBPS);      // 250kbps for maximum range & noise immunity
+    radio.setChannel(108);  // 2.508 GHz channel
+    radio.setAutoAck(true); // Auto-ACK confirmation back to TX
     radio.enableDynamicPayloads();
     radio.startListening();
     Serial.println(F("[RF] NRF24L01 Receiver Listening on Pipe. Ready!"));
   } else {
-    Serial.println(F("[ERROR] NRF24L01 Hardware Not Responding! Check Wiring & 3.3V."));
+    Serial.println(
+        F("[ERROR] NRF24L01 Hardware Not Responding! Check Wiring & 3.3V."));
   }
 
   Serial.println(F("[SYSTEM] Ready. Waiting for Transmitter link...\n"));
@@ -179,7 +186,8 @@ void loop() {
     if (!isFailsafeActive) {
       isFailsafeActive = true;
       activateFailsafe();
-      Serial.println(F("[WARNING] RF Signal Lost! FAILSAFE ACTIVATED (Motor CUT @ 1000us)."));
+      Serial.println(F("[WARNING] RF Signal Lost! FAILSAFE ACTIVATED (Motor "
+                       "CUT @ 1000us)."));
     }
   }
 
@@ -197,8 +205,10 @@ void loop() {
 // ============================================================================
 void applyOutputs(bool force) {
   for (uint8_t i = 0; i < 8; i++) {
-    // Suppress tiny 1us noise to eliminate servo motor buzzing & cross-channel power spikes
-    if (force || abs((int)currentOutputs[i] - (int)lastAppliedOutputs[i]) >= 2) {
+    // Suppress tiny 1us noise to eliminate servo motor buzzing & cross-channel
+    // power spikes
+    if (force ||
+        abs((int)currentOutputs[i] - (int)lastAppliedOutputs[i]) >= 2) {
       servoOutputs[i].writeMicroseconds(currentOutputs[i]);
       lastAppliedOutputs[i] = currentOutputs[i];
     }
