@@ -150,13 +150,13 @@ const char menu_4[] PROGMEM = "5.CALIBRATION ";
 const char menu_5[] PROGMEM = "6.WING MIXING ";
 const char menu_6[] PROGMEM = "7.MODEL SELECT";
 const char menu_7[] PROGMEM = "8.MODEL NAME  ";
-const char menu_8[] PROGMEM = "9.DEADBAND SET";
-const char menu_9[] PROGMEM = "10.SET FAILSAF";
+const char menu_8[] PROGMEM = "9.SET DEADBAND";
+const char menu_9[] PROGMEM = "10.SET FAILSAFE";
 const char menu_10[] PROGMEM = "11.RESET MODEL";
 const char menu_11[] PROGMEM = "12.SAVE & EXIT";
-const char *const MENU_ITEMS[12] PROGMEM = {
-    menu_0, menu_1, menu_2, menu_3, menu_4, menu_5,
-    menu_6, menu_7, menu_8, menu_9, menu_10, menu_11};
+const char *const MENU_ITEMS[12] PROGMEM = {menu_0, menu_1, menu_2,  menu_3,
+                                            menu_4, menu_5, menu_6,  menu_7,
+                                            menu_8, menu_9, menu_10, menu_11};
 const uint8_t TOTAL_MENU_ITEMS = 12;
 
 const uint8_t ANALOG_PINS[6] = {PIN_JOY_CH1, PIN_JOY_CH2, PIN_JOY_CH3,
@@ -1084,12 +1084,12 @@ void renderMenuList() {
   }
 
   lcd.setCursor(0, 0);
-  lcd.print(F("> "));
+  lcd.print(F(">"));
   printProgmemStr(MENU_ITEMS, currentMenuItem);
 
   lcd.setCursor(0, 1);
   uint8_t nextItem = (currentMenuItem + 1) % TOTAL_MENU_ITEMS;
-  lcd.print(F("  "));
+  lcd.print(F(" "));
   printProgmemStr(MENU_ITEMS, nextItem);
 }
 
@@ -1116,7 +1116,7 @@ void renderEditTrim() {
   lcd.print(F("    "));
 
   lcd.setCursor(0, 1);
-  snprintf(lineBuf, sizeof(lineBuf), "OUT:%4dus [NEXT]",
+  snprintf(lineBuf, sizeof(lineBuf), "OUT:%4dus[NEXT]",
            payload.channels[selectedChannel]);
   lcd.print(lineBuf);
 }
@@ -1140,15 +1140,15 @@ void renderEditDrExpo() {
   char lineBuf[17];
   lcd.setCursor(0, 0);
   printProgmemStr(CH_NAMES, selectedChannel);
-  snprintf(lineBuf, sizeof(lineBuf), "   D/R:%3d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), " D/R:%3d%% %s",
            curModel.rateExpo[selectedChannel].rate,
-           selectedSubParam == 0 ? "*" : " ");
+           selectedSubParam == 0 ? " *" : " ");
   lcd.print(lineBuf);
 
   lcd.setCursor(0, 1);
-  snprintf(lineBuf, sizeof(lineBuf), "     EXPO:%2d%% %s",
+  snprintf(lineBuf, sizeof(lineBuf), "    EXPO:%2d%% %s",
            curModel.rateExpo[selectedChannel].expo,
-           selectedSubParam == 1 ? "*" : " ");
+           selectedSubParam == 1 ? " *" : " ");
   lcd.print(lineBuf);
   lcd.print(F("  "));
 }
@@ -1213,35 +1213,45 @@ void renderEditReverse() {
 void renderCalibration() {
   if (calibStep == 0) {
     lcd.setCursor(0, 0);
-    lcd.print(F("1.CENTER STICKS "));
+    lcd.print(F("1. CENTER STICKS"));
     lcd.setCursor(0, 1);
-    lcd.print(F("CLICK TO START >"));
+    lcd.print(F(" CLICK TO START "));
   } else if (calibStep == 1) {
-    lcd.setCursor(0, 0);
-    lcd.print(F("CENTER ALL STICK"));
-    lcd.setCursor(0, 1);
     char buf[17];
-    snprintf(buf, sizeof(buf), "A%3d E%3d [CLICK]", (int)filteredAdc[0],
+    snprintf(buf, sizeof(buf), "A:%-4d    E:%-4d", (int)filteredAdc[0],
              (int)filteredAdc[1]);
+    lcd.setCursor(0, 0);
+    lcd.print(buf);
+    snprintf(buf, sizeof(buf), "T:%-4d    R:%-4d", (int)filteredAdc[2],
+             (int)filteredAdc[3]);
+    lcd.setCursor(0, 1);
     lcd.print(buf);
   } else if (calibStep == 2) {
-    bool aOk = (calibLiveMax[0] - calibLiveMin[0] >= 120);
-    bool eOk = (calibLiveMax[1] - calibLiveMin[1] >= 120);
-    bool tOk = (calibLiveMax[2] - calibLiveMin[2] >= 150);
-    bool rOk = (calibLiveMax[3] - calibLiveMin[3] >= 120);
+    bool aOk = (calibLiveCenter[0] - calibLiveMin[0] >= 100) &&
+               (calibLiveMax[0] - calibLiveCenter[0] >= 100);
+    bool eOk = (calibLiveCenter[1] - calibLiveMin[1] >= 100) &&
+               (calibLiveMax[1] - calibLiveCenter[1] >= 100);
+    bool tOk = (calibLiveMax[2] - calibLiveMin[2] >= 200);
+    bool rOk = (calibLiveCenter[3] - calibLiveMin[3] >= 100) &&
+               (calibLiveMax[3] - calibLiveCenter[3] >= 100);
 
     lcd.setCursor(0, 0);
-    lcd.print(F("2.MOVE TO LIMITS"));
+    if (aOk && eOk && tOk && rOk) {
+      lcd.print(F("LIMITS OK: CLICK"));
+    } else {
+      lcd.print(F("2.MOVE TO LIMITS"));
+    }
+
     lcd.setCursor(0, 1);
     char buf[17];
-    snprintf(buf, sizeof(buf), "%c:%c %c:%c %c:%c %c:%c", 'A', aOk ? '*' : '.',
-             'E', eOk ? '*' : '.', 'T', tOk ? '*' : '.', 'R', rOk ? '*' : '.');
+    snprintf(buf, sizeof(buf), "A:%c E:%c T:%c R:%c ", aOk ? '*' : '.',
+             eOk ? '*' : '.', tOk ? '*' : '.', rOk ? '*' : '.');
     lcd.print(buf);
   } else if (calibStep == 3) {
     lcd.setCursor(0, 0);
     lcd.print(F("*CALIBRATION OK*"));
     lcd.setCursor(0, 1);
-    lcd.print(F("CLICK TO EXIT ->"));
+    lcd.print(F(" CLICK TO  EXIT "));
   }
 }
 
@@ -1281,8 +1291,8 @@ void renderModelSelect() {
   lcd.print(F("SELECT PROFILE: "));
   lcd.setCursor(0, 1);
   char buf[17];
-  snprintf(buf, sizeof(buf), "> %-7s (%d/%d)", curModel.name, activeModelIdx + 1,
-           TOTAL_MODELS);
+  snprintf(buf, sizeof(buf), "> %-7s (%d/%d)", curModel.name,
+           activeModelIdx + 1, TOTAL_MODELS);
   lcd.print(buf);
 }
 
@@ -1315,7 +1325,6 @@ void renderEditModelName() {
       lcd.write(' ');
     }
   }
-  lcd.print(F(" [OK]"));
 }
 
 // ----------------------------------------------------------------------------
